@@ -166,3 +166,18 @@ export const base_situation_form: Array<{label: string, value: number}> = [
     {label: "Runners on 2nd and 3rd", value: 0b110},
     {label: "Bases Loaded", value: 0b111},
 ];
+
+export const valid_operators: Array<{label: string, value: string}> = [
+    {label: "=", value: "="},
+    {label: "≠", value: "!="},
+    {label: ">", value: ">"},
+    {label: "<", value: "<"},
+    {label: "≥", value: ">="},
+    {label: "≤", value: "<="},
+];
+
+export const filter_home_form: Array<{label: string, value: string}> = [
+    {label: "Either", value: "either"},
+    {label: "Home", value: "home"},
+    {label: "Away", value: "away"}
+];

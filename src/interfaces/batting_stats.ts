@@ -4,6 +4,7 @@ export interface BattingStatResponse {
     previous: null | null;
     results:  BattingStatRow[];
     loading:  boolean;
+    queryChanged: boolean;
     error:    boolean;
     errorMessage: string | null;
 }
@@ -17,6 +18,8 @@ export interface BattingStatRow {
     game_id:    nullable<string>;
     start_year: number;
     end_year:   number;
+    win:       nullable<number>;
+    loss:      nullable<number>;
     G:          number;
     PA:         number;
     AB:         number;

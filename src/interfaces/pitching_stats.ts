@@ -6,6 +6,7 @@ export interface PitchingStatResponse {
     previous: null | null;
     results:  PitchingStatRow[];
     loading:  boolean;
+    queryChanged: boolean;
     error:    boolean;
     errorMessage: string | null;
 }
@@ -19,6 +20,8 @@ export interface PitchingStatRow {
     game_id:    nullable<string>;
     start_year: number;
     end_year:   number;
+    win:       nullable<number>;
+    loss:      nullable<number>;
     G:          number;
     GS:         number;
     IP:         number;
@@ -64,4 +67,8 @@ export interface PitchingStatRow {
     "LOB%":     nullable<number>;
     wOBA:       nullable<number>;
     "HR/FB%":   nullable<number>;
+    "GB%":      nullable<number>;
+    "LD%":      nullable<number>;
+    "FB%":      nullable<number>;
+    "PU%":      nullable<number>;
 }

@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import "./App.css";
-import Creatable from "react-select/creatable";
 import {
     balls_form,
     base_situation_form,
@@ -20,125 +19,11 @@ import {
     strikes_form,
     year_values,
 } from "./data/select_forms";
-import Select from "react-select";
 import type { BattingStatResponse } from "./interfaces/batting_stats";
 import { StatsTable } from "./components/table_component";
 import { type PaginationState, type SortingState } from "@tanstack/react-table";
 import { Link, useParams } from "react-router";
-
-function SelectInput(props: any) {
-    return (
-        <div className="select-container">
-            <label>{props.label}</label>
-            <Select
-                isClearable={false}
-                closeMenuOnSelect={true}
-                isDisabled={props.disabled}
-                options={props.options}
-                onChange={(selected) => props.setState(selected.value)}
-                value={props.options.find(
-                    (option: { value: any }) => props.state === option.value
-                )}
-            />
-        </div>
-    );
-}
-
-function CreatableMulti(props: any) {
-    return (
-        <div className="select-container">
-            <label>{props.label}</label>
-            <Creatable
-                isClearable
-                isMulti
-                isDisabled={props.disabled}
-                options={props.options}
-                closeMenuOnSelect={false}
-                formatCreateLabel={
-                    props.formatCreateLabel ||
-                    ((inputValue: string) => `Add "${inputValue}"`)
-                }
-                onChange={(selected) => {
-                    if (selected) {
-                        props.setState(selected.map((s) => s.value));
-                    } else {
-                        props.setState([]);
-                    }
-                }}
-                value={props.state.map((elem: any) => {
-                    const found = props.options.find(
-                        (t: any) => t.value === elem
-                    );
-                    return found ? found : { label: elem, value: elem };
-                })}
-                onCreateOption={(inputValue) => {
-                    if (props.forceUpperCase) {
-                        inputValue = inputValue.toUpperCase();
-                    }
-                    if (props.length && inputValue.length !== props.length) {
-                        return;
-                    }
-                    if (props.forceInteger && isNaN(Number(inputValue))) {
-                        return;
-                    } else if (props.forceInteger) {
-                        if (
-                            props.minNumber &&
-                            Number(inputValue) < props.minNumber
-                        ) {
-                            return;
-                        }
-                        if (
-                            props.maxNumber &&
-                            Number(inputValue) > props.maxNumber
-                        ) {
-                            return;
-                        }
-                        props.setState([...props.state, Number(inputValue)]);
-                        return;
-                    }
-                    props.setState([...props.state, inputValue]);
-                }}
-                components={
-                    props.options.length === 0
-                        ? { DropdownIndicator: null }
-                        : {}
-                }
-                noOptionsMessage={
-                    props.options.length > 0 ? () => "No options" : () => null
-                }
-                placeholder={props.placeholder || "Select..."}
-            />
-        </div>
-    );
-}
-
-function MultiInput(props: any) {
-    return (
-        <div className="select-container">
-            <label>{props.label}</label>
-            <Select
-                isClearable
-                isMulti
-                isDisabled={props.disabled}
-                options={props.options}
-                closeMenuOnSelect={false}
-                onChange={(selected) => {
-                    if (selected) {
-                        props.setState(selected.map((s: any) => s.value));
-                    } else {
-                        props.setState([]);
-                    }
-                }}
-                value={props.state.map((elem: any) => {
-                    const found = props.options.find(
-                        (t: any) => t.value === elem
-                    );
-                    return found;
-                })}
-            />
-        </div>
-    );
-}
+import { CreatableMulti, InningFilter, MultiInput, SelectInput } from "./components/form_components";
 
 function App() {
     let [battingPitching, setBattingPitching] = useState<
@@ -171,7 +56,7 @@ function App() {
     let [awayScore, setAwayScore] = useState<Array<number>>([]);
     let [baseSituation, setBaseSituation] = useState<Array<number>>([]);
 
-    let [inputDisabled, setInputDisabled] = useState<boolean>(false);
+    let [inputDisabled, setInputDisabled] = useState<boolean>(true);
 
     // Load saved query from URL if inputted
     let { uuid } = useParams();
@@ -220,7 +105,8 @@ function App() {
         next: null,
         previous: null,
         results: [],
-        loading: false,
+        loading: true,
+        queryChanged: false,
         error: false,
         errorMessage: null,
     });
@@ -230,9 +116,55 @@ function App() {
     });
     let [sorting, setSorting] = useState<SortingState>([]);
 
-    // Create fetch URL based on the selected options
+    // Inning filter component states
+    const [filterHome, setFilterHome] = useState<string>("either");
+    const [filterOpposing, setFilterOpposing] = useState<boolean>(false);
+    const [filterInnings, setFilterInnings] = useState<number[]>([]);
+    const [filterTop, setFilterTop] = useState<boolean[]>([]);
+    const [filterStats, setFilterStats] = useState<string[]>([]);
+    const [filterValues, setFilterValues] = useState<string[]>([]);
+    const [filterOperators, setFilterOperators] = useState<string[]>([]);
+
+    // Disable table after query is changed
     useEffect(() => {
-        console.log(sorting);
+        setData({...data, queryChanged: true})
+    }, [
+        battingPitching,
+        startYear,
+        endYear,
+        split,
+        find,
+        batterHand,
+        pitcherHand,
+        batterStarter,
+        pitcherStarter,
+        batterLineup,
+        playerFieldPos,
+        batterHome,
+        pitcherHome,
+        innings,
+        outs,
+        count,
+        strikes,
+        balls,
+        scoreDiff,
+        homeScore,
+        awayScore,
+        baseSituation,
+        batterTeams,
+        pitcherTeams,
+        daysOfWeek,
+        filterHome,
+        filterOpposing,
+        filterInnings,
+        filterTop,
+        filterStats,
+        filterValues,
+        filterOperators
+    ]);
+
+    const updateData = () => {
+        setInputDisabled(true);
         const controller = new AbortController();
         const signal = controller.signal;
         if (data["count"] !== 0) {
@@ -241,6 +173,7 @@ function App() {
                 loading: true,
                 error: false,
                 errorMessage: null,
+                queryChanged: false
             });
         } else {
             setData({
@@ -249,6 +182,7 @@ function App() {
                 previous: null,
                 results: [],
                 loading: true,
+                queryChanged: false,
                 error: false,
                 errorMessage: null,
             });
@@ -289,6 +223,13 @@ function App() {
             page: (pagination.pageIndex + 1).toString(),
             page_size: pagination.pageSize.toString(),
             sort: sorting.map((s) => `${s.desc ? "-" : ""}${s.id}`).join(","),
+            filter_home: filterInnings.length > 0 ? filterHome : "",
+            filter_opposing: filterInnings.length > 0 ? (filterOpposing ? "Y" : "N") : "",
+            filter_innings: filterInnings.map((num) => num.toString()).join(","),
+            filter_top: filterTop.map((num) => num ? "Y" : "N").join(","),
+            filter_stats: filterStats.join(","),
+            filter_values: filterValues.map((value) => value.toString()).join(","),
+            filter_operators: filterOperators.join(","),
         };
         let params = new URLSearchParams(paramsObject);
         let keysForDel: Array<string> = [];
@@ -301,7 +242,6 @@ function App() {
         keysForDel.forEach((key) => {
             params.delete(key);
         });
-        // const fetchUrl = `http://localhost:8000/api/batting_stats?start_year=${startYear}&end_year=${endYear}&split=${split}&find=${find}&batter_hand=${batterHand}&pitcher_hand=${pitcherHand}&batter_starter=${batterStarter}&pitcher_starter=${pitcherStarter}&batter_lineup=${batterLineup.join(',')}&player_field_pos=${playerFieldPos.join(',')}&batter_home=${batterHome}&pitcher_home=${pitcherHome}&innings=${innings.join(',')}&outs=${outs.join(',')}&count=${count.join(',')}&strikes=${strikes.join(',')}&balls=${balls.join(',')}&score_diff=${scoreDiff.join(',')}&home_score=${homeScore.join(',')}&away_score=${awayScore.join(',')}&base_situation=${baseSituation.join(',')}&batter_teams=${batterTeams.join(',')}&pitcher_teams=${pitcherTeams.join(',')}&days_of_week=${daysOfWeek.join(',')}`;
         let fetchUrl;
         if (battingPitching === "batting") {
             console.log(
@@ -319,14 +259,23 @@ function App() {
                 "http://localhost:8000/api/pitching_stats?" + params.toString();
         }
         fetch(fetchUrl, { signal })
-            .then((response) => response.json())
+            .then((response) => {
+                if (!response.ok) {
+                    return response.json().then(error => {
+                        throw new Error(error[0] || `HTTP Error ${response.status}`)
+                    })
+                }
+                return response.json();
+            })
             .then((d) => {
                 setData({
                     ...d,
                     loading: false,
                     error: false,
                     errorMessage: null,
+                    queryChanged: false,
                 });
+                setInputDisabled(false);
             })
             .catch((error) => {
                 if (error.name === "AbortError") {
@@ -338,43 +287,18 @@ function App() {
                     previous: null,
                     results: [],
                     loading: false,
+                    queryChanged: false,
                     error: true,
                     errorMessage: error.message || "Error fetching data",
                 });
+                console.log(data);
+                setInputDisabled(false);
                 // console.error("Error fetching data:", error);
             });
         return () => {
             controller.abort(); // Clean up the fetch request on component unmount or when dependencies change
         };
-    }, [
-        battingPitching,
-        startYear,
-        endYear,
-        split,
-        find,
-        batterHand,
-        pitcherHand,
-        batterStarter,
-        pitcherStarter,
-        batterLineup,
-        playerFieldPos,
-        batterHome,
-        pitcherHome,
-        innings,
-        outs,
-        count,
-        strikes,
-        balls,
-        scoreDiff,
-        homeScore,
-        awayScore,
-        baseSituation,
-        batterTeams,
-        pitcherTeams,
-        daysOfWeek,
-        pagination,
-        sorting,
-    ]);
+    };
 
     function save_query() {
         const paramsObject: { [key: string]: any } = {
@@ -421,6 +345,9 @@ function App() {
                 console.error("Error saving query:", error);
             });
     }
+
+    useEffect(updateData, [pagination, sorting]);
+    useEffect(updateData, []);
     return (
         <>
             <p>
@@ -436,6 +363,7 @@ function App() {
                 sorting={sorting}
                 setSorting={setSorting}
                 type={battingPitching}
+                updateData={updateData}
             />
 
             <button onClick={save_query}>Save query</button>
@@ -445,7 +373,24 @@ function App() {
                 </p>
             )}
             <h2>Filters</h2>
-
+            <InningFilter
+                disabled={inputDisabled}
+                filterHome={filterHome}
+                setFilterHome={setFilterHome}
+                filterOpposing={filterOpposing}
+                setFilterOpposing={setFilterOpposing}
+                filterInnings={filterInnings}
+                setFilterInnings={setFilterInnings}
+                filterTop={filterTop}
+                setFilterTop={setFilterTop}
+                filterStats={filterStats}
+                setFilterStats={setFilterStats}
+                filterValues={filterValues}
+                setFilterValues={setFilterValues}
+                filterOperators={filterOperators}
+                setFilterOperators={setFilterOperators}
+            />
+            <hr/>
             <SelectInput
                 label="Batting/Pitching:"
                 options={batting_pitching_form}

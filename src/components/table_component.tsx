@@ -7,24 +7,41 @@ import type {
     BattingStatResponse,
     BattingStatRow,
 } from "../interfaces/batting_stats";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { battingColumns } from "./batting_table";
 import { pitchingColumns } from "./pitching_table";
 import {
     type PitchingStatRow,
     type PitchingStatResponse,
 } from "../interfaces/pitching_stats";
+import "./table.css"
+import Skeleton from "@mui/material/Skeleton";
 
 export function StatsTable(props: {
     data: BattingStatResponse | PitchingStatResponse;
     [key: string]: any;
 }) {
+    const columns = useMemo(() => Object.values(
+            props.type == "batting" ? battingColumns : pitchingColumns
+    ), [props.type]);
+    const tableData = useMemo(
+        () => (props.data.loading || props.data.queryChanged || props.data.error ? Array(props.pagination.pageSize).fill({}) : props.data.results),
+        [props.data.loading, props.data.queryChanged, props.data.error, props.data.results]
+    );
+    const tableColumns = useMemo(
+        () =>
+        props.data.loading || props.data.queryChanged || props.data.error
+            ? columns.map((column) => ({
+                ...column,
+                cell: () => <Skeleton animation={props.data.queryChanged || props.data.error ? false : "wave"} variant="text" sx={{ fontSize: '10pt' }} />,
+            }))
+            : columns,
+        [props.data.loading, props.data.queryChanged, props.data.error]
+    );
     // Set up react table
     const table = useReactTable<BattingStatRow | PitchingStatRow>({
-        data: props.data?.results ?? [],
-        columns: Object.values(
-            props.type == "batting" ? battingColumns : pitchingColumns
-        ),
+        data: tableData,
+        columns: tableColumns,
         getCoreRowModel: getCoreRowModel(),
         rowCount: props.data?.count,
         state: {
@@ -35,9 +52,30 @@ export function StatsTable(props: {
         isMultiSortEvent: (e: any) => e.ctrlKey || e.shiftKey || e.metaKey,
         onPaginationChange: props.setPagination,
         manualPagination: true,
+        defaultColumn: {
+            size: 50, //starting column size
+            minSize: 50, //enforced during column resizing
+            maxSize: 100, //enforced during column resizing
+        },
     });
 
-    // Proxy to allow input for page to update before page rerenders
+    useEffect(() => {
+        if (!props.data.results || props.data.results.length === 0) return;
+        let hide_start_and_end = (props.data.results ?? []).every(it => it.start_year == it.end_year);
+        table.setColumnVisibility({
+            year: props.data.results[0]?.year == "N/A" ? false : true,
+            player_id: props.data.results[0]?.player_id == "N/A" ? false : true,
+            month: props.data.results[0]?.month == "N/A" ? false : true,
+            win: props.data.results[0]?.win == "N/A" ? false : true,
+            loss: props.data.results[0]?.loss == "N/A" ? false : true,
+            day: props.data.results[0]?.day == "N/A" ? false : true,
+            game_id: props.data.results[0]?.game_id == "N/A" ? false : true,
+            start_year: !hide_start_and_end,
+            end_year: !hide_start_and_end,
+        })
+    }, [props.data.results]);
+
+    // Proxy state to allow input for page to update before page rerenders
     const [pageIndexProxy, setPageIndexProxy] = useState(
         props.pagination.pageIndex
     );
@@ -49,8 +87,21 @@ export function StatsTable(props: {
     }, [pageIndexProxy]);
     return (
         <div className="p-2">
+            {props.data.queryChanged && !(props.data.loading) ? (
+                // Show button to update data if table is disabled
+                <>
+                    <div className="table-data-update-button">
+                        <button
+                            className="border rounded p-1"
+                            onClick={() => props.updateData()}
+                        >
+                            Update Data
+                        </button>
+                    </div>
+                </>
+            ) : null}
             <div className="h-2" />
-            <table>
+            <table className="stats-table">
                 <thead>
                     {table.getHeaderGroups().map((headerGroup) => (
                         <tr key={headerGroup.id}>
@@ -59,6 +110,7 @@ export function StatsTable(props: {
                                     <th
                                         key={header.id}
                                         colSpan={header.colSpan}
+                                        style={{ minWidth: `${header.getSize()}px` }}
                                     >
                                         {header.isPlaceholder ? null : (
                                             <div

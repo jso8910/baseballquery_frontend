@@ -1,0 +1,27 @@
+.stats-table thead {
+    background-color: #aaaaaa;
+    color: #333;
+    font-weight: bold;
+    text-align: left;
+    padding: 8px;
+}
+
+.stats-table {
+    display: block;
+    white-space: nowrap;
+    overflow-x: auto;
+    font-size: 10pt;
+}
+
+/* .stats-table tbody {
+    background-color: #f0f0f0;
+    color: #333;
+    font-weight: bold;
+    text-align: left;
+    padding: 8px;
+} */
+
+.stats-table tbody tr:nth-child(odd) {
+  background-color: #f0f0f0f0;
+  /* color: #; */
+}

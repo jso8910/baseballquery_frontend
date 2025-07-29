@@ -1,8 +1,16 @@
-import Select from "react-select";
-import Creatable from "react-select/creatable";
+
 import { filter_home_form, innings_form, valid_operators } from "../data/select_forms";
 import { valid_filter_cols } from "../data/database_columns";
 import { useState } from "react";
+import FormControl from "@mui/material/FormControl"
+import InputLabel from "@mui/material/InputLabel"
+import Select from "@mui/material/Select"
+import MenuItem from "@mui/material/MenuItem"
+import Autocomplete from "@mui/material/Autocomplete"
+import TextField from "@mui/material/TextField"
+import Chip from "@mui/material/Chip"
+import ListItemText from "@mui/material/ListItemText"
+import Checkbox from "@mui/material/Checkbox"
 
 export function SelectInput(props: {
     disabled: boolean;
@@ -13,19 +21,20 @@ export function SelectInput(props: {
     onChange?: (selected: any) => void;
 }) {
     return (
-        <div className="select-container">
-            <label>{props.label}</label>
-            <Select
-                isClearable={false}
-                closeMenuOnSelect={true}
-                isDisabled={props.disabled}
-                options={props.options}
-                onChange={props.onChange || ((selected) => props.setState(selected.value))}
-                value={props.options.find(
-                    (option: { value: any }) => props.state === option.value
-                )}
-            />
-        </div>
+        <>
+        <InputLabel>{props.label}</InputLabel>
+        <Select
+            disabled={props.disabled}
+            onChange={props.onChange || ((event) => props.setState(event.target.value))}
+            value={props.state}
+        >
+        {props.options.map((option) => (
+            <MenuItem key={option.value} value={option.value}>
+            {option.label}
+            </MenuItem>
+        ))}
+        </Select>
+        </>
     );
 }
 
@@ -36,7 +45,6 @@ export function CreatableMulti(props: {
     setState: (value: any) => void;
     label: string;
     onChange?: (selected: any) => void;
-    formatCreateLabel?: (inputValue: string) => string;
     forceUpperCase?: boolean;
     length?: number;
     forceInteger?: boolean;
@@ -45,69 +53,54 @@ export function CreatableMulti(props: {
     placeholder?: string;
 }) {
     return (
-        <div className="select-container">
-            <label>{props.label}</label>
-            <Creatable
-                isClearable
-                isMulti
-                isDisabled={props.disabled}
-                options={props.options}
-                closeMenuOnSelect={false}
-                formatCreateLabel={
-                    props.formatCreateLabel ||
-                    ((inputValue: string) => `Add "${inputValue}"`)
-                }
-                onChange={props.onChange || ((selected) => {
-                    if (selected) {
-                        props.setState(selected.map((s) => s.value));
-                    } else {
-                        props.setState([]);
-                    }
-                })}
-                value={props.state.map((elem: any) => {
-                    const found = props.options.find(
-                        (t: any) => t.value === elem
-                    );
-                    return found ? found : { label: elem, value: elem };
-                })}
-                onCreateOption={(inputValue) => {
-                    if (props.forceUpperCase) {
-                        inputValue = inputValue.toUpperCase();
-                    }
-                    if (props.length && inputValue.length !== props.length) {
-                        return;
-                    }
-                    if (props.forceInteger && isNaN(Number(inputValue))) {
-                        return;
-                    } else if (props.forceInteger) {
-                        if (
-                            props.minNumber &&
-                            Number(inputValue) < props.minNumber
-                        ) {
-                            return;
+        <Autocomplete
+            multiple
+            id="tags-filled"
+            options={props.options.map((option) => option.value)}
+            value={props.state}
+            onChange={((_, selected) => {
+                console.log(selected)
+                if (selected) {
+                    props.setState(selected.filter(it => {
+                        if (props.length && it.length !== props.length) return false;
+                        if (props.forceInteger && isNaN(Number(it.value))) return false;
+                        if (props.forceInteger) {
+                            if (props.minNumber && Number(it.value) < props.minNumber) return false;
+                            if (props.maxNumber && Number(it.value) > props.maxNumber) return false;
                         }
-                        if (
-                            props.maxNumber &&
-                            Number(inputValue) > props.maxNumber
-                        ) {
-                            return;
+                        return true;
+                    }).map(it => {
+                        if (props.forceUpperCase) {
+                            return it.toUpperCase();
                         }
-                        props.setState([...props.state, Number(inputValue)]);
-                        return;
-                    }
-                    props.setState([...props.state, inputValue]);
-                }}
-                components={
-                    props.options.length === 0
-                        ? { DropdownIndicator: null }
-                        : {}
+                        if (props.forceInteger) {
+                            return Number(it)
+                        }
+                        return it.value;
+                    }));
+                } else {
+                    props.setState([]);
                 }
-                noOptionsMessage={
-                    props.options.length > 0 ? () => "No options" : () => null
-                }
-                placeholder={props.placeholder || "Select..."}
-            />
-        </div>
+            })}
+            freeSolo
+            renderValue={(value: readonly string[], getItemProps) =>
+                value.map((option: string, index: number) => {
+                const { key, ...itemProps } = getItemProps({ index });
+                return (
+                    <Chip variant="outlined" label={option} key={key} {...itemProps} />
+                );
+                })
+            }
+            renderInput={(params) => (
+                <TextField
+                {...params}
+                variant="filled"
+                label={props.label}
+                placeholder={props.placeholder}
+                />
+            )}
+            disableCloseOnSelect
+        />
     );
 }
 
@@ -120,30 +113,55 @@ export function MultiInput(props: {
     onChange?: (selected: any) => void;
 }) {
     return (
-        <div className="select-container">
-            <label>{props.label}</label>
+        <>
+            <InputLabel>{props.label}</InputLabel>
             <Select
-                isClearable
-                isMulti
-                isDisabled={props.disabled}
-                options={props.options}
-                closeMenuOnSelect={false}
-                onChange={props.onChange || ((selected) => {
-                    if (selected) {
-                        props.setState(selected.map((s: any) => s.value));
-                    } else {
-                        props.setState([]);
-                    }
-                })}
-                value={props.state.map((elem: any) => {
-                    const found = props.options.find(
-                        (t: any) => t.value === elem
+                multiple
+                disabled={props.disabled}
+                onChange={props.onChange || ((event) => props.setState(event.target.value))}
+                value={props.state}
+                renderValue={(value: string[]) =>
+                    value.map((option: string, index: number) => {
+                    return (
+                        <Chip variant="outlined" label={props.options.find((o) => o.value === option)?.label} key={index} />
                     );
-                    return found;
-                })}
-            />
-        </div>
-    );
+                    })
+                }
+            >
+            {props.options.map((option) => (
+                <MenuItem key={option.value} value={option.value}>
+                    <Checkbox checked={props.state.includes(option.value)} />
+                    <ListItemText primary={option.label} />
+                </MenuItem>
+            ))}
+            </Select>
+        </>
+    )
+    // return (
+    //     <div className="select-container">
+    //         <label>{props.label}</label>
+    //         <Select
+    //             isClearable
+    //             isMulti
+    //             isDisabled={props.disabled}
+    //             options={props.options}
+    //             closeMenuOnSelect={false}
+    //             onChange={props.onChange || ((selected) => {
+    //                 if (selected) {
+    //                     props.setState(selected.map((s: any) => s.value));
+    //                 } else {
+    //                     props.setState([]);
+    //                 }
+    //             })}
+    //             value={props.state.map((elem: any) => {
+    //                 const found = props.options.find(
+    //                     (t: any) => t.value === elem
+    //                 );
+    //                 return found;
+    //             })}
+    //         />
+    //     </div>
+    // );
 }
 
 export function InningFilter(props: {
@@ -186,9 +204,6 @@ export function InningFilter(props: {
                 <SelectInput
                     disabled={props.disabled}
                     options={filter_home_form}
-                    onChange={(selected) =>
-                        props.setFilterHome(selected ? selected.value : "either")
-                    }
                     state={props.filterHome}
                     setState={props.setFilterHome}
                     label="Team for filter to apply to (home/away/either)"
@@ -265,7 +280,7 @@ export function SingleFilter(props: {
             <SelectInput
                 disabled={props.disabled}
                 options={innings_form}
-                state={props.filterInnings}
+                state={props.filterInnings[props.index]}
                 setState={(value) => {
                     const newInnings = [...props.filterInnings];
                     newInnings[props.index] = value;

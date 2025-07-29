@@ -38,14 +38,14 @@ function App() {
     );
     let [find, setFind] = useState<"player" | "team">("player");
     let [daysOfWeek, setDaysOfWeek] = useState<Array<string>>([]);
-    let [batterHand, setBatterHand] = useState<"L" | "R" | null>(null);
-    let [pitcherHand, setPitcherHand] = useState<"L" | "R" | null>(null);
-    let [batterStarter, setBatterStarter] = useState<boolean | null>(null);
-    let [pitcherStarter, setPitcherStarter] = useState<boolean | null>(null);
+    let [batterHand, setBatterHand] = useState<"L" | "R" | "A">("A");
+    let [pitcherHand, setPitcherHand] = useState<"L" | "R" | "A">("A");
+    let [batterStarter, setBatterStarter] = useState<boolean | "A">("A");
+    let [pitcherStarter, setPitcherStarter] = useState<boolean | "A">("A");
     let [batterLineup, setBatterLineup] = useState<Array<number>>([]);
     let [playerFieldPos, setPlayerFieldPos] = useState<Array<number>>([]);
-    let [batterHome, setBatterHome] = useState<boolean | null>(null);
-    let [pitcherHome, setPitcherHome] = useState<boolean | null>(null);
+    let [batterHome, setBatterHome] = useState<boolean | "A">("A");
+    let [pitcherHome, setPitcherHome] = useState<boolean | "A">("A");
     let [innings, setInnings] = useState<Array<number>>([]);
     let [outs, setOuts] = useState<Array<number>>([]);
     let [count, setCount] = useState<Array<string>>([]);
@@ -163,49 +163,60 @@ function App() {
         filterOperators
     ]);
 
-    const updateData = () => {
-        setInputDisabled(true);
+    const updateData = (paginationChange = false) => {
+        !paginationChange && setInputDisabled(true);
         const controller = new AbortController();
         const signal = controller.signal;
-        if (data["count"] !== 0) {
+        if (paginationChange) {
             setData({
                 ...data,
-                loading: true,
+                loading: false,     // We don't want the table to disappear on quick requests like pagination
                 error: false,
                 errorMessage: null,
                 queryChanged: false
             });
-        } else {
-            setData({
-                count: 0,
-                next: null,
-                previous: null,
-                results: [],
-                loading: true,
-                queryChanged: false,
-                error: false,
-                errorMessage: null,
-            });
+        }
+        else {
+            if (data["count"] !== 0) {
+                setData({
+                    ...data,
+                    loading: true,
+                    error: false,
+                    errorMessage: null,
+                    queryChanged: false
+                });
+            } else {
+                setData({
+                    count: 0,
+                    next: null,
+                    previous: null,
+                    results: [],
+                    loading: true,
+                    queryChanged: false,
+                    error: false,
+                    errorMessage: null,
+                });
+            }
         }
         let paramsObject: { [key: string]: string } = {
             start_year: startYear.toString(),
             end_year: endYear.toString(),
             split: split,
             find: find,
-            batter_handedness_pa: batterHand === null ? "" : batterHand,
-            pitcher_handedness_pa: pitcherHand === null ? "" : pitcherHand,
+            batter_handedness_pa: batterHand === "A" ? "" : batterHand,
+            pitcher_handedness_pa: pitcherHand === "A" ? "" : pitcherHand,
             batter_starter:
-                batterStarter === null ? "" : batterStarter ? "Y" : "N",
+                batterStarter === "A" ? "" : batterStarter ? "Y" : "N",
             pitcher_starter:
-                pitcherStarter === null ? "" : pitcherStarter ? "Y" : "N",
+                pitcherStarter === "A" ? "" : pitcherStarter ? "Y" : "N",
             batter_lineup_pos: batterLineup
                 .map((num) => num.toString())
                 .join(","),
             player_field_position: playerFieldPos
                 .map((num) => num.toString())
                 .join(","),
-            batter_home: batterHome === null ? "" : batterHome ? "Y" : "N",
-            pitcher_home: pitcherHome === null ? "" : pitcherHome ? "Y" : "N",
+            batter_home: batterHome === "A" ? "" : batterHome ? "Y" : "N",
+            pitcher_home: pitcherHome === "A" ? "" : pitcherHome ? "Y" : "N",
             innings: innings.map((num) => num.toString()).join(","),
             outs: outs.map((num) => num.toString()).join(","),
             count: count.join(","),
@@ -346,7 +357,7 @@ function App() {
             });
     }
 
-    useEffect(updateData, [pagination, sorting]);
+    useEffect(() => updateData(true), [pagination, sorting]);
     useEffect(updateData, []);
     return (
         <>
@@ -404,9 +415,7 @@ function App() {
                 state={batterTeams}
                 setState={setBatterTeams}
                 forceUpperCase={true}
-                formatCreateLabel={(inputValue: string) =>
-                    `Add "${inputValue}" (must be a valid Retrosheet 3 letter code)`
-                }
+                placeholder="3 Letter Retrosheet Team ID"
                 length={3}
                 forceInteger={false}
                 disabled={inputDisabled}
@@ -417,9 +426,7 @@ function App() {
                 state={pitcherTeams}
                 setState={setPitcherTeams}
                 forceUpperCase={true}
-                formatCreateLabel={(inputValue: string) =>
-                    `Add "${inputValue}" (must be a valid Retrosheet 3 letter code)`
-                }
+                placeholder="3 Letter Retrosheet Team ID"
                 length={3}
                 forceInteger={false}
                 disabled={inputDisabled}
@@ -520,9 +527,7 @@ function App() {
                 options={innings_form}
                 state={innings}
                 setState={setInnings}
-                formatCreateLabel={(inputValue: string) =>
-                    `Add "${inputValue}" (must be a number greater than or equal to 1)`
-                }
+                placeholder="Add Inning (number ≥ 1)"
                 forceInteger={true}
                 minNumber={1}
                 disabled={inputDisabled}
@@ -560,9 +565,6 @@ function App() {
                 options={[]}
                 state={scoreDiff}
                 setState={setScoreDiff}
-                formatCreateLabel={(inputValue: string) =>
-                    `Add "${inputValue}" (must be a number)`
-                }
                 forceInteger={true}
                 placeholder="Enter multiple score differences (e.g., 1, -2)"
                 disabled={inputDisabled}
@@ -572,9 +574,6 @@ function App() {
                 options={[]}
                 state={homeScore}
                 setState={setHomeScore}
-                formatCreateLabel={(inputValue: string) =>
-                    `Add "${inputValue}" (must be a number ≥ 0)`
-                }
                 forceInteger={true}
                 minNumber={0}
                 placeholder="Enter multiple home scores (e.g., 0, 5)"
@@ -585,9 +584,6 @@ function App() {
                 options={[{ label: "0", value: 0 }]}
                 state={awayScore}
                 setState={setAwayScore}
-                formatCreateLabel={(inputValue: string) =>
-                    `Add "${inputValue}" (must be a number ≥ 0)`
-                }
                 forceInteger={true}
                 minNumber={0}
                 placeholder="Enter multiple away scores (e.g., 0, 3)"

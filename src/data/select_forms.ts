@@ -63,16 +63,16 @@ export const days_of_week_form: Array<{label: string, value: string}> = [
     {label: "Sat", value: "Saturday"}
 ];
 
-export const player_hand: Array<{label: string, value: string | null}> = [
+export const player_hand: Array<{label: string, value: string}> = [
     {label: "Left", value: "L"},
     {label: "Right", value: "R"},
-    {label: "None", value: null}
+    {label: "Any", value: "A"}
 ];
 
-export const player_starter_form: Array<{label: string, value: boolean | null}> = [
+export const player_starter_form: Array<{label: string, value: boolean | "A"}> = [
     {label: "Starter", value: true},
     {label: "Non-Starter", value: false},
-    {label: "Any", value: null}
+    {label: "Any", value: "A"}
 ];
 
 export const batter_lineup_form: Array<{label: string, value: number}> = [
@@ -87,7 +87,7 @@ export const batter_lineup_form: Array<{label: string, value: number}> = [
     {label: "9th", value: 9},
 ];
 
-export const player_field_pos_form: Array<{label: string, value: number | null}> = [
+export const player_field_pos_form: Array<{label: string, value: number}> = [
     {label: "Pitcher", value: 1},
     {label: "Catcher", value: 2},
     {label: "First Base", value: 3},
@@ -101,10 +101,10 @@ export const player_field_pos_form: Array<{label: string, value: number | null}>
     {label: "Pinch Hitter", value: 11},
 ];
 
-export const player_home_form: Array<{label: string, value: boolean | null}> = [
+export const player_home_form: Array<{label: string, value: boolean | "A"}> = [
     {label: "Home", value: true},
     {label: "Away", value: false},
-    {label: "Any", value: null}
+    {label: "Any", value: "A"}
 ];
 
 export const innings_form: Array<{label: string, value: number}> = [

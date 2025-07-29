@@ -14,8 +14,91 @@ import {
     type PitchingStatRow,
     type PitchingStatResponse,
 } from "../interfaces/pitching_stats";
-import "./table.css"
+import "./table.css";
 import Skeleton from "@mui/material/Skeleton";
+import TableContainer from "@mui/material/TableContainer";
+import Table from "@mui/material/Table";
+import TableHead from "@mui/material/TableHead";
+import TableBody from "@mui/material/TableBody";
+import TableRow from "@mui/material/TableRow";
+import TableCell from "@mui/material/TableCell";
+import TableFooter from "@mui/material/TableFooter";
+import TablePagination from "@mui/material/TablePagination";
+import TableSortLabel from "@mui/material/TableSortLabel";
+import Paper from "@mui/material/Paper";
+import { useTheme } from "@mui/material/styles";
+import Box from "@mui/material/Box";
+import IconButton from "@mui/material/IconButton";
+import FirstPageIcon from "@mui/icons-material/FirstPage";
+import LastPageIcon from "@mui/icons-material/LastPage"
+import KeyboardArrowRight from "@mui/icons-material/KeyboardArrowRight";
+import KeyboardArrowLeft from "@mui/icons-material/KeyboardArrowLeft";
+
+interface TablePaginationActionsProps {
+  count: number;
+  page: number;
+  rowsPerPage: number;
+  onPageChange: (
+    event: React.MouseEvent<HTMLButtonElement>,
+    newPage: number,
+  ) => void;
+}
+
+function TablePaginationActions(props: TablePaginationActionsProps) {
+  const theme = useTheme();
+  const { count, page, rowsPerPage, onPageChange } = props;
+
+  const handleFirstPageButtonClick = (
+    event: React.MouseEvent<HTMLButtonElement>,
+  ) => {
+    onPageChange(event, 0);
+  };
+
+  const handleBackButtonClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+    onPageChange(event, page - 1);
+  };
+
+  const handleNextButtonClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+    onPageChange(event, page + 1);
+  };
+
+  const handleLastPageButtonClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+    onPageChange(event, Math.max(0, Math.ceil(count / rowsPerPage) - 1));
+  };
+
+  return (
+    <Box sx={{ flexShrink: 0, ml: 2.5 }}>
+      <IconButton
+        onClick={handleFirstPageButtonClick}
+        disabled={page === 0}
+        aria-label="first page"
+      >
+        {theme.direction === 'rtl' ? <LastPageIcon /> : <FirstPageIcon />}
+      </IconButton>
+      <IconButton
+        onClick={handleBackButtonClick}
+        disabled={page === 0}
+        aria-label="previous page"
+      >
+        {theme.direction === 'rtl' ? <KeyboardArrowRight /> : <KeyboardArrowLeft />}
+      </IconButton>
+      <IconButton
+        onClick={handleNextButtonClick}
+        disabled={page >= Math.ceil(count / rowsPerPage) - 1}
+        aria-label="next page"
+      >
+        {theme.direction === 'rtl' ? <KeyboardArrowLeft /> : <KeyboardArrowRight />}
+      </IconButton>
+      <IconButton
+        onClick={handleLastPageButtonClick}
+        disabled={page >= Math.ceil(count / rowsPerPage) - 1}
+        aria-label="last page"
+      >
+        {theme.direction === 'rtl' ? <FirstPageIcon /> : <LastPageIcon />}
+      </IconButton>
+    </Box>
+  );
+}
 
 export function StatsTable(props: {
     data: BattingStatResponse | PitchingStatResponse;
@@ -53,7 +136,7 @@ export function StatsTable(props: {
         onPaginationChange: props.setPagination,
         manualPagination: true,
         defaultColumn: {
-            size: 50, //starting column size
+            size: 60, //starting column size
             minSize: 50, //enforced during column resizing
             maxSize: 100, //enforced during column resizing
         },
@@ -100,143 +183,109 @@ export function StatsTable(props: {
                     </div>
                 </>
             ) : null}
-            <div className="h-2" />
-            <table className="stats-table">
-                <thead>
-                    {table.getHeaderGroups().map((headerGroup) => (
-                        <tr key={headerGroup.id}>
-                            {headerGroup.headers.map((header) => {
-                                return (
-                                    <th
-                                        key={header.id}
-                                        colSpan={header.colSpan}
-                                        style={{ minWidth: `${header.getSize()}px` }}
-                                    >
-                                        {header.isPlaceholder ? null : (
-                                            <div
-                                                onClick={header.column.getToggleSortingHandler()}
+            <Paper sx={{ width: '100%', overflow: 'hidden' }}>
+                <TableContainer className="h-2">
+                    <Table className="stats-table" size="small">
+                        <TableHead>
+                            {table.getHeaderGroups().map((headerGroup) => (
+                                <TableRow key={headerGroup.id}>
+                                    {headerGroup.headers.map((header) => {
+                                        return (
+                                            <TableCell
+                                                key={header.id}
+                                                colSpan={header.colSpan}
+                                                style={{ minWidth: `${header.getSize()}px` }}
+                                                sortDirection={header.column.getIsSorted() ? header.column.getIsSorted() : false}
                                             >
-                                                {flexRender(
-                                                    header.column.columnDef
-                                                        .header,
-                                                    header.getContext()
+                                                {header.isPlaceholder ? null : (
+                                                    <TableSortLabel
+                                                        active={header.column.getIsSorted() !== false}
+                                                        // @ts-ignore
+                                                        direction={
+                                                            header.column.getIsSorted() === "asc" || header.column.getIsSorted() === "desc"
+                                                                ? header.column.getIsSorted()
+                                                                : "asc"
+                                                        }
+                                                        onClick={header.column.getToggleSortingHandler()}
+                                                        hideSortIcon={true}
+                                                    >
+                                                        {flexRender(
+                                                            header.column.columnDef
+                                                                .header,
+                                                            header.getContext()
+                                                        )}
+                                                    </TableSortLabel>
                                                 )}
-                                                {{
-                                                    asc: " ⏶",
-                                                    desc: " ⏷",
-                                                }[
-                                                    header.column.getIsSorted() as string
-                                                ] ?? null}
-                                            </div>
-                                        )}
-                                    </th>
+                                            </TableCell>
+                                        );
+                                    })}
+                                </TableRow>
+                            ))}
+                        </TableHead>
+                        <TableBody>
+                            {table.getRowModel().rows.map((row) => {
+                                return (
+                                    <TableRow key={row.id}>
+                                        {row.getVisibleCells().map((cell) => {
+                                            return (
+                                                <TableCell key={cell.id}>
+                                                    {flexRender(
+                                                        cell.column.columnDef.cell,
+                                                        cell.getContext()
+                                                    )}
+                                                </TableCell>
+                                            );
+                                        })}
+                                    </TableRow>
                                 );
                             })}
-                        </tr>
-                    ))}
-                </thead>
-                <tbody>
-                    {table.getRowModel().rows.map((row) => {
-                        return (
-                            <tr key={row.id}>
-                                {row.getVisibleCells().map((cell) => {
-                                    return (
-                                        <td key={cell.id}>
+                        </TableBody>
+                        <TableFooter>
+                            {table.getFooterGroups().map(footer => (
+                                <TableRow key={footer.id}>
+                                    {footer.headers.map(header => (
+                                        <TableCell key={header.id} colSpan={header.colSpan}>
                                             {flexRender(
-                                                cell.column.columnDef.cell,
-                                                cell.getContext()
+                                                header.column.columnDef.footer,
+                                                header.getContext()
                                             )}
-                                        </td>
-                                    );
-                                })}
-                            </tr>
-                        );
-                    })}
-                </tbody>
-            </table>
-            <div className="h-2" />
-            <div className="flex items-center gap-2">
-                <button
-                    className="border rounded p-1"
-                    onClick={() => table.firstPage()}
-                    disabled={!table.getCanPreviousPage()}
-                >
-                    {"<<"}
-                </button>
-                <button
-                    className="border rounded p-1"
-                    onClick={() => table.previousPage()}
-                    disabled={!table.getCanPreviousPage()}
-                >
-                    {"<"}
-                </button>
-                <button
-                    className="border rounded p-1"
-                    onClick={() => table.nextPage()}
-                    disabled={!table.getCanNextPage()}
-                >
-                    {">"}
-                </button>
-                <button
-                    className="border rounded p-1"
-                    onClick={() => table.lastPage()}
-                    disabled={!table.getCanNextPage()}
-                >
-                    {">>"}
-                </button>
-                <span className="flex items-center gap-1">
-                    <div>Page</div>
-                    <strong>
-                        {table.getState().pagination.pageIndex + 1} of{" "}
-                        {table.getPageCount().toLocaleString()}
-                    </strong>
-                </span>
-                <span className="flex items-center gap-1">
-                    | Go to page:
-                    {/* Select page number */}
-                    <input
-                        type="number"
-                        max={table.getPageCount()}
-                        defaultValue={table.getState().pagination.pageIndex + 1}
-                        onChange={(e) => {
-                            const page = e.target.value
-                                ? Number(e.target.value) - 1
-                                : props.pagination.pageIndex;
-                            if (page < 0 || page >= table.getPageCount()) {
-                                // Revert to previous input if out of bounds
-                                e.target.value = (
-                                    props.pagination.pageIndex + 1
-                                ).toString();
-                                return;
-                            }
-                            setPageIndexProxy(page);
-                        }}
-                        className="border p-1 rounded w-16"
-                    />
-                </span>
-                <select
-                    value={table.getState().pagination.pageSize}
-                    onChange={(e) => {
-                        table.setPageSize(Number(e.target.value));
+                                        </TableCell>
+                                    ))}
+                                </TableRow>
+                            ))}
+                        </TableFooter>
+                    </Table>
+                </TableContainer>
+                <TablePagination
+                    rowsPerPageOptions={[10, 25, 50, 100, 200, { label: 'All', value: -1 }]}
+                    component="div"
+                    colSpan={3}
+                    count={props.data?.count ?? 0}
+                    rowsPerPage={props.pagination.pageSize}
+                    page={props.pagination.pageIndex}
+                    slotProps={{
+                        select: {
+                        inputProps: {
+                            'aria-label': 'rows per page',
+                        },
+                        native: true,
+                        },
                     }}
-                >
-                    {[10, 20, 30, 40, 50].map((pageSize) => (
-                        <option key={pageSize} value={pageSize}>
-                            Show {pageSize}
-                        </option>
-                    ))}
-                </select>
-                {props.data.loading ? "Loading..." : null}
-                {props.data.error ? props.data.errorMessage : null}
-            </div>
-            <div>
-                Showing {table.getRowModel().rows.length.toLocaleString()} of{" "}
-                {table.getRowCount().toLocaleString()} Rows
-            </div>
-            <div>
-                <button onClick={() => null}>Force Rerender</button>
-            </div>
-            <pre>{JSON.stringify(props.pagination, null, 2)}</pre>
+                    onPageChange={(_, newPage) => {
+                        props.setPagination({
+                            pageIndex: newPage,
+                            pageSize: props.pagination.pageSize
+                        })
+                    }}
+                    onRowsPerPageChange={(event) => {
+                        props.setPagination({
+                            pageIndex: props.pagination.pageIndex,
+                            pageSize: +event.target.value === -1 ? props.data.count : parseInt(event.target.value, 10)
+                        })
+                    }}
+                    ActionsComponent={TablePaginationActions}
+                />
+            </Paper>
         </div>
     );
 }
